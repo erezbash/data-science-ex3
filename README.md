@@ -26,7 +26,6 @@ curG<-delete.vertices(g, -maxCompVertex)
 b <- betweenness(curG, v = V(curG))
 b
 ```
-![pic](/Q1_pics/1_a_betweeness.PNG)
 
 find the Actor with max betweeness
 ```{r}
@@ -38,7 +37,6 @@ which(max(b) == b)
 c <- closeness(curG, vids = V(curG))
 c
 ```
-![pic](/Q1_pics/1_a_closeness.PNG)
 
 find the Actor with max closeness
 ```{r}
