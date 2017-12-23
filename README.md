@@ -180,11 +180,6 @@ knitr::opts_knit$set(root.dir = folder)
 ```
 
 ``` r
-#install.packages("twitteR")
-#install.packages("tm")
-#install.packages("httr")
-#install.packages("igraph")
-#install.packages("plyr")
 library(igraph)
 library(twitteR)
 library(tm)
@@ -195,7 +190,7 @@ source("credentials.R")
 ```
 
 Read coins list
-===============
+------------------
 
 ``` r
 coins <- readLines("coinsList.csv")
@@ -211,30 +206,21 @@ coins
 
 Init twitter oauth
 ------------------
-
 ``` r
 credentials <- setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
 ```
 
-    ## [1] "Using direct authentication"
-
 Init 2 vectors for egdes and one for EdgeValue
-==============================================
-
+------------------
 ``` r
 coinFromEdge <- c()
 coinToEdge <- c()
 ```
 
 Itearate over coins list
-========================
-
 Search for the currnet coin
-===========================
-
 Create vertex between current coin to others coins that related in the text on the tweet
-========================================================================================
-
+------------------
 ``` r
 for (coin in coins) {
   search <- searchTwitter(coin, n=100)
@@ -254,13 +240,8 @@ for (coin in coins) {
 }
 ```
 
-    ## Warning in doRppAPICall("search/tweets", n, params = params,
-    ## retryOnRateLimit = retryOnRateLimit, : 100 tweets were requested but the
-    ## API can only return 2
-
 Now find the mean of Edge occurrence, and filter smallest than 2*mean.
-===========================================================
-
+------------------
 ``` r
 res <- data.frame(from = coinFromEdge, to = coinToEdge)
 coundEdg <- ddply(res,.(from,to),NROW)
@@ -269,8 +250,7 @@ coundEdg <- coundEdg[coundEdg$V1 > 2*meanEdg[1],]
 ```
 
 load the graph
-==============
-
+------------------
 ``` r
 library(igraph)
 ga.data <- coundEdg[c("from","to")]
@@ -280,12 +260,10 @@ g <- graph.data.frame(ga.data,directed = F)
 ``` r
 plot(g, vertex.size=1, asp=FALSE)
 ```
-
 ![](q2_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
 find the big component
-======================
-
+------------------
 ``` r
 comps <- components(g)
 maxCompId <- as.numeric(which(max(comps$csize) == comps$csize))
@@ -293,8 +271,7 @@ maxCompVertex <- as.numeric(which(comps$membership == maxCompId))
 ```
 
 create sub-graph from the big component
-=======================================
-
+------------------
 ``` r
 curG<-delete.vertices(g, -maxCompVertex)
 ```
@@ -317,8 +294,7 @@ b
     ##   0.0000   0.0000   0.0000   0.0000  55.0000   0.0000
 
 find the coin with max betweeness
-==================================
-
+------------------
 ``` r
 which(max(b) == b)
 ```
@@ -343,8 +319,7 @@ c
     ## 0.007462687 0.011627907 0.007462687 0.013888889 0.009433962 0.010204082
 
 find the coin with max closeness
-=================================
-
+------------------
 ``` r
 which(max(c) == c)
 ```
@@ -371,8 +346,7 @@ e$vector
     ## 0.1553432046 0.0009813853 0.3818523407 0.0062894402 0.0308197130
 
 find the coin with max eigenvector
-===================================
-
+------------------
 ``` r
 which(max(e$vector) == e$vector)
 ```
