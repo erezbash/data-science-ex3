@@ -169,7 +169,7 @@ Q2
 cryptocurrency is domain that we want to invistigate using the skills we learn at this course.
 we want to analyze link between coin in the same context. 
 our data resource will be twitter, we collect twits that include coin mention from 37 most interesting coins (after little pre-research).
-then we build graph using cryptcoins as vertex and relation between two coin as eadg.
+then we build graph using cryptcoins as vertex and relation between two coin as edge.
 ---
 
 ``` r
