@@ -163,13 +163,13 @@ which.max(gc2$modularity)
 ```
 ![pic](/Q1_pics/1_b_ALG2_3_3.PNG)
 
+
 Q2
 ==
 
 ``` r
 folder = 'C:/Code/R/Ass3'
 setwd(folder)
-
 #Or for all chuncks in this Rmarkdown:
 knitr::opts_knit$set(root.dir = folder)
 ```
@@ -179,22 +179,13 @@ knitr::opts_knit$set(root.dir = folder)
 #install.packages("tm")
 #install.packages("httr")
 #install.packages("igraph")
+#install.packages("plyr")
 library(igraph)
-```
-``` r
 library(twitteR)
-```
-
-``` r
 library(tm)
-```
-
-
-``` r
 library(httr)
-```
-
-``` r
+library(igraph)
+library(plyr)
 source("credentials.R")
 ```
 
@@ -202,9 +193,16 @@ Read coins list
 ===============
 
 ``` r
-library(igraph)
 coins <- readLines("coinsList.csv")
+coins
 ```
+
+    ##  [1] "$ETH"   "$LTC"   "$NEO"   "$ETC"   "$XVG"   "$BTG"   "$BCC"  
+    ##  [8] "$BTC"   "$QTUM"  "$POT"   "$BCN"   "$NXS"   "$ATMC"  "$GXS"  
+    ## [15] "$ADA"   "$PAY"   "$ARDR"  "$DGD"   "$BAY"   "$CVC"   "$KMD"  
+    ## [22] "$IOTA"  "$ZEC"   "$XRP"   "$BCH"   "$XLM"   "$DASH"  "$EOS"  
+    ## [29] "$NXT"   "$TRX"   "$VIB"   "$LSK"   "$OMG"   "$RDD"   "$FLAP" 
+    ## [36] "$USDT"  "$BURST"
 
 Init twitter oauth
 ------------------
@@ -215,8 +213,8 @@ credentials <- setup_twitter_oauth(consumer_key, consumer_secret, access_token, 
 
     ## [1] "Using direct authentication"
 
-Init 2 vectors for egdes
-========================
+Init 2 vectors for egdes and one for EdgeValue
+==============================================
 
 ``` r
 coinFromEdge <- c()
@@ -241,7 +239,7 @@ for (coin in coins) {
     words <- strsplit(text, " ")[[1]]
     words <- unique(words)
     for(word in words) {
-      if(word != coin && !(word %in% edges) && word %in% coins) {
+      if(word != coin  && word %in% coins) {
         edges <- c(edges, word)
         coinFromEdge<-c(coinFromEdge , coin)
         coinToEdge<-c(coinToEdge , word)
@@ -251,12 +249,18 @@ for (coin in coins) {
 }
 ```
 
-Now save the data to csv file
-=============================
+    ## Warning in doRppAPICall("search/tweets", n, params = params,
+    ## retryOnRateLimit = retryOnRateLimit, : 100 tweets were requested but the
+    ## API can only return 2
+
+Now find the mean of counts Edge, and filter smallest than.
+===========================================================
 
 ``` r
-res <- cbind(from = coinFromEdge, to = coinToEdge)
-write.csv(res,file="twits_edgelist.csv",row.names = F)
+res <- data.frame(from = coinFromEdge, to = coinToEdge)
+coundEdg <- ddply(res,.(from,to),NROW)
+meanEdg <- mean(coundEdg$V1)
+coundEdg <- coundEdg[coundEdg$V1 > 2*meanEdg[1],]
 ```
 
 load the graph
@@ -264,9 +268,15 @@ load the graph
 
 ``` r
 library(igraph)
-ga.data <- read.csv('twits_edgelist.csv', header = T)
+ga.data <- coundEdg[c("from","to")]
 g <- graph.data.frame(ga.data,directed = F)
 ```
+
+``` r
+plot(g, vertex.size=1, asp=FALSE)
+```
+
+![](q2_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
 find the big component
 ======================
@@ -292,16 +302,14 @@ b <- betweenness(curG, v = V(curG))
 b
 ```
 
-    ##       $ETH       $LTC       $NEO       $ETC       $XVG       $BTG 
-    ##  4.0926501 36.4097649  3.6645476  2.9068305 12.0821877  5.2947886 
-    ##       $BCC       $BTC      $QTUM       $POT       $BCN       $NXS 
-    ##  3.7116006 13.6295040 29.5774955  3.7013043  0.0000000  0.6446135 
-    ##      $ATMC       $GXS       $ADA       $PAY      $ARDR       $DGD 
-    ##  0.0000000  0.0800000 17.1304711  1.1873617  0.0000000  0.0000000 
-    ##       $BAY       $CVC       $KMD      $IOTA       $ZEC       $XRP 
-    ##  0.4379887  0.8622311  0.0000000  0.1166667  0.1343874  5.9055963 
-    ##       $BCH 
-    ##  5.4300098
+    ##     $ADA    $ATMC     $BAY     $BCC     $BCH     $BCN     $BTC     $BTG 
+    ## 142.8667   2.0000   0.0000  27.7500   0.0000  78.0000 235.7833   0.0000 
+    ##     $CVC    $DASH     $ETC     $ETH     $GXS    $IOTA     $LSK     $LTC 
+    ##   0.0000   1.0000   0.0000  98.1000   2.0000   0.0000   0.0000  28.8000 
+    ##     $NEO     $NXS     $NXT     $OMG     $PAY     $POT    $QTUM     $RDD 
+    ##  47.8000   0.0000   0.0000   0.0000  29.5000  34.0000   3.4000   0.0000 
+    ##     $TRX    $USDT     $VIB     $ZEC     $XVG     $XRP 
+    ##   0.0000   0.0000   0.0000   0.0000  55.0000   0.0000
 
 find the Actor with max betweeness
 ==================================
@@ -310,24 +318,24 @@ find the Actor with max betweeness
 which(max(b) == b)
 ```
 
-    ## $LTC 
-    ##    2
+    ## $BTC 
+    ##    7
 
 ``` r
 c <- closeness(curG, vids = V(curG))
 c
 ```
 
-    ##       $ETH       $LTC       $NEO       $ETC       $XVG       $BTG 
-    ## 0.03225806 0.04000000 0.03225806 0.03030303 0.03225806 0.03125000 
-    ##       $BCC       $BTC      $QTUM       $POT       $BCN       $NXS 
-    ## 0.03125000 0.03703704 0.03225806 0.03125000 0.02272727 0.02439024 
-    ##      $ATMC       $GXS       $ADA       $PAY      $ARDR       $DGD 
-    ## 0.02127660 0.02380952 0.03448276 0.02941176 0.02380952 0.01851852 
-    ##       $BAY       $CVC       $KMD      $IOTA       $ZEC       $XRP 
-    ## 0.02500000 0.02777778 0.02439024 0.02631579 0.02631579 0.03030303 
-    ##       $BCH 
-    ## 0.03333333
+    ##        $ADA       $ATMC        $BAY        $BCC        $BCH        $BCN 
+    ## 0.016666667 0.012500000 0.008928571 0.015873016 0.014285714 0.012195122 
+    ##        $BTC        $BTG        $CVC       $DASH        $ETC        $ETH 
+    ## 0.020000000 0.012820513 0.010752688 0.014705882 0.012820513 0.017241379 
+    ##        $GXS       $IOTA        $LSK        $LTC        $NEO        $NXS 
+    ## 0.012500000 0.012820513 0.013698630 0.015151515 0.015384615 0.011363636 
+    ##        $NXT        $OMG        $PAY        $POT       $QTUM        $RDD 
+    ## 0.012820513 0.012820513 0.011904762 0.014285714 0.012195122 0.012820513 
+    ##        $TRX       $USDT        $VIB        $ZEC        $XVG        $XRP 
+    ## 0.007462687 0.011627907 0.007462687 0.013888889 0.009433962 0.010204082
 
 find the Actor with max closeness
 =================================
@@ -336,24 +344,26 @@ find the Actor with max closeness
 which(max(c) == c)
 ```
 
-    ## $LTC 
-    ##    2
+    ## $BTC 
+    ##    7
 
 ``` r
 e <- eigen_centrality(curG)
 e$vector
 ```
 
-    ##       $ETH       $LTC       $NEO       $ETC       $XVG       $BTG 
-    ## 0.85005003 1.00000000 0.85130824 0.72095482 0.83548814 0.70304506 
-    ##       $BCC       $BTC      $QTUM       $POT       $BCN       $NXS 
-    ## 0.73716838 0.86431971 0.70379743 0.66076444 0.23643854 0.44432374 
-    ##      $ATMC       $GXS       $ADA       $PAY      $ARDR       $DGD 
-    ## 0.07961321 0.22951140 0.71841851 0.52186058 0.23047045 0.06521295 
-    ##       $BAY       $CVC       $KMD      $IOTA       $ZEC       $XRP 
-    ## 0.33140450 0.44269878 0.26014488 0.50003874 0.51857958 0.84971437 
-    ##       $BCH 
-    ## 0.83188571
+    ##         $ADA        $ATMC         $BAY         $BCC         $BCH 
+    ## 0.2394509925 0.1306775838 0.0320562660 0.5801367348 0.4019029813 
+    ##         $BCN         $BTC         $BTG         $CVC        $DASH 
+    ## 0.0383445969 1.0000000000 0.1560369879 0.0806741734 0.4516374550 
+    ##         $ETC         $ETH         $GXS        $IOTA         $LSK 
+    ## 0.1560369879 0.9955537253 0.1306775838 0.1560369879 0.3113801926 
+    ##         $LTC         $NEO         $NXS         $NXT         $OMG 
+    ## 0.5980272590 0.5170195504 0.0373632116 0.1560369879 0.1560369879 
+    ##         $PAY         $POT        $QTUM         $RDD         $TRX 
+    ## 0.2054401742 0.1975154314 0.1873994706 0.1560369879 0.0009813853 
+    ##        $USDT         $VIB         $ZEC         $XVG         $XRP 
+    ## 0.1553432046 0.0009813853 0.3818523407 0.0062894402 0.0308197130
 
 find the Actor with max eigenvector
 ===================================
@@ -362,8 +372,8 @@ find the Actor with max eigenvector
 which(max(e$vector) == e$vector)
 ```
 
-    ## $LTC 
-    ##    2
+    ## $BTC 
+    ##    7
 
 b:
 --
@@ -375,14 +385,19 @@ gc1 <-  edge.betweenness.community(curG)
 gc1
 ```
 
-    ## IGRAPH clustering edge betweenness, groups: 1, mod: 0
+    ## IGRAPH clustering edge betweenness, groups: 4, mod: 0.34
     ## + groups:
     ##   $`1`
-    ##    [1] "$ETH"  "$LTC"  "$NEO"  "$ETC"  "$XVG"  "$BTG"  "$BCC"  "$BTC" 
-    ##    [9] "$QTUM" "$POT"  "$BCN"  "$NXS"  "$ATMC" "$GXS"  "$ADA"  "$PAY" 
-    ##   [17] "$ARDR" "$DGD"  "$BAY"  "$CVC"  "$KMD"  "$IOTA" "$ZEC"  "$XRP" 
-    ##   [25] "$BCH" 
-    ## 
+    ##   [1] "$ADA"  "$ATMC" "$GXS"  "$NXS"  "$POT"  "$XRP" 
+    ##   
+    ##   $`2`
+    ##    [1] "$BAY"  "$BCC"  "$BCH"  "$CVC"  "$DASH" "$ETH"  "$LTC"  "$NEO" 
+    ##    [9] "$PAY"  "$QTUM" "$USDT" "$ZEC" 
+    ##   
+    ##   $`3`
+    ##   [1] "$BCN" "$TRX" "$VIB" "$XVG"
+    ##   
+    ##   + ... omitted several groups/vertices
 
 -   1: print community with colors
 
@@ -393,10 +408,10 @@ using the membership function that returns community ids for each vertex.
 ```
 
 ``` r
-plot(curG, vertex.size=5, vertex.color=memb1, asp=FALSE)
+plot(curG, vertex.size=4, vertex.color=memb1, asp=FALSE)
 ```
 
-![](q2_files/figure-markdown_github/unnamed-chunk-19-1.png)
+![](q2_files/figure-markdown_github/unnamed-chunk-20-1.png)
 
 -   2.1: number of communities
 
@@ -404,7 +419,7 @@ plot(curG, vertex.size=5, vertex.color=memb1, asp=FALSE)
 length(groups(gc1))
 ```
 
-    ## [1] 1
+    ## [1] 4
 
 -   2.2: size of each community
 
@@ -414,7 +429,10 @@ for (value in groups(gc1)) {
 }
 ```
 
-    ## [1] 25
+    ## [1] 6
+    ## [1] 12
+    ## [1] 4
+    ## [1] 8
 
 -   3: modularity
 
@@ -424,11 +442,12 @@ modularity for each phase
 gc1$modularity
 ```
 
-    ##  [1] -5.083990e-02 -4.852513e-02 -4.525473e-02 -4.025356e-02 -3.152541e-02
-    ##  [6] -3.412687e-02 -2.289282e-02 -2.548366e-02 -1.812525e-02 -2.506955e-02
-    ## [11] -2.477224e-02 -4.353458e-02 -4.081633e-02 -4.090127e-02 -2.722504e-02
-    ## [16] -1.562998e-02 -1.140394e-02 -8.972371e-03 -5.340950e-03 -3.185457e-03
-    ## [21] -1.783856e-03 -7.645098e-04 -1.274183e-04 -4.247276e-05  0.000000e+00
+    ##  [1] -0.072699653 -0.047960069 -0.029730903 -0.009548611  0.007812500
+    ##  [6]  0.027994792  0.047526042  0.064453125  0.073567708  0.093532986
+    ## [11]  0.110677083  0.128472222  0.149956597  0.166883681  0.185546875
+    ## [16]  0.202473958  0.214626736  0.227213542  0.243489583  0.248263889
+    ## [21]  0.264322917  0.286458333  0.302300347  0.313585069  0.324218750
+    ## [26]  0.334635417  0.344835069  0.271918403  0.114366319  0.000000000
 
 best modularity score
 
@@ -436,7 +455,7 @@ best modularity score
 max(gc1$modularity)
 ```
 
-    ## [1] 0
+    ## [1] 0.3448351
 
 index (phase, i.e. partitioning) with the best score
 
@@ -444,7 +463,7 @@ index (phase, i.e. partitioning) with the best score
 which.max(gc1$modularity)
 ```
 
-    ## [1] 25
+    ## [1] 27
 
 -   ALGO2:walktrap.community
 
@@ -453,18 +472,18 @@ gc2 <- walktrap.community(curG)
 gc2
 ```
 
-    ## IGRAPH clustering walktrap, groups: 5, mod: 0.057
+    ## IGRAPH clustering walktrap, groups: 4, mod: 0.31
     ## + groups:
     ##   $`1`
-    ##   [1] "$QTUM" "$ARDR"
+    ##   [1] "$ADA"  "$ATMC" "$GXS"  "$NXS"  "$POT"  "$XRP" 
     ##   
     ##   $`2`
-    ##    [1] "$ETH"  "$NEO"  "$ETC"  "$BTG"  "$BCC"  "$BTC"  "$GXS"  "$PAY" 
-    ##    [9] "$CVC"  "$KMD"  "$IOTA" "$ZEC"  "$BCH" 
+    ##   [1] "$BCN" "$TRX" "$VIB" "$XVG"
     ##   
     ##   $`3`
-    ##   [1] "$LTC" "$XVG" "$POT" "$BCN" "$NXS" "$ADA" "$BAY" "$XRP"
-    ##   
+    ##    [1] "$BCC"  "$BCH"  "$BTC"  "$BTG"  "$CVC"  "$DASH" "$ETC"  "$ETH" 
+    ##    [9] "$IOTA" "$LSK"  "$LTC"  "$NEO"  "$NXT"  "$OMG"  "$RDD"  "$USDT"
+    ##   [17] "$ZEC" 
     ##   + ... omitted several groups/vertices
 
 -   1: print community with colors
@@ -479,7 +498,7 @@ memb2 <- membership(gc2)
 plot(curG, vertex.size=5, vertex.color=memb2, asp=FALSE)
 ```
 
-![](q2_files/figure-markdown_github/unnamed-chunk-27-1.png)
+![](q2_files/figure-markdown_github/unnamed-chunk-28-1.png)
 
 -   2.1: number of communities
 
@@ -487,7 +506,7 @@ plot(curG, vertex.size=5, vertex.color=memb2, asp=FALSE)
 length(groups(gc2))
 ```
 
-    ## [1] 5
+    ## [1] 4
 
 -   2.2: size of each community
 
@@ -497,11 +516,10 @@ for (value in groups(gc2)) {
 }
 ```
 
-    ## [1] 2
-    ## [1] 13
-    ## [1] 8
-    ## [1] 1
-    ## [1] 1
+    ## [1] 6
+    ## [1] 4
+    ## [1] 17
+    ## [1] 3
 
 -   3: modularity modularity for each phase
 
@@ -509,11 +527,12 @@ for (value in groups(gc2)) {
 gc2$modularity
 ```
 
-    ##  [1]  0.000000e+00 -4.825967e-02 -4.755888e-02 -4.879060e-02 -4.150651e-02
-    ##  [6] -4.338593e-02 -3.535858e-02 -3.166345e-02 -2.973093e-02 -2.378475e-02
-    ## [11] -2.460235e-02 -1.854998e-02 -1.065005e-02  1.433454e-03  2.146998e-02
-    ## [16]  1.921893e-02  2.583406e-02  2.447492e-02  3.764148e-02  5.352631e-02
-    ## [21]  5.660558e-02  7.475183e-03 -1.274157e-04 -4.247211e-05  0.000000e+00
+    ##  [1]  0.000000000 -0.054470498 -0.042100683 -0.028211802 -0.007378469
+    ##  [6]  0.011718755  0.026041673  0.044270840  0.061631955  0.088107653
+    ## [11]  0.108289942  0.130425364  0.150390625  0.164713532  0.184895828
+    ## [16]  0.192925349  0.211588547  0.219401032  0.226996511  0.234375000
+    ## [21]  0.241536453  0.248480886  0.255208343  0.274739593  0.281250000
+    ## [26]  0.299913168  0.311197907  0.271918416  0.114366353  0.000000000
 
 best modularity score
 
@@ -521,7 +540,7 @@ best modularity score
 max(gc2$modularity)
 ```
 
-    ## [1] 0.05660558
+    ## [1] 0.3111979
 
 index (phase, i.e. partitioning) with the best score
 
@@ -529,8 +548,7 @@ index (phase, i.e. partitioning) with the best score
 which.max(gc2$modularity)
 ```
 
-    ## [1] 21
-
+    ## [1] 27
 
 
 
