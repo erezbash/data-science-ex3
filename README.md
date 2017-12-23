@@ -166,6 +166,11 @@ which.max(gc2$modularity)
 
 Q2
 ==
+cryptocurrency is domain that we want to invistigate using the skills we learn at this course.
+we want to analyze link between coin in the same context. 
+our data resource will be twitter, we collect twits that include coin mention from 37 most interesting coins (after little pre-research).
+then we build graph using cryptcoins as vertex and relation between two coin as eadg.
+---
 
 ``` r
 folder = 'C:/Code/R/Ass3'
@@ -253,7 +258,7 @@ for (coin in coins) {
     ## retryOnRateLimit = retryOnRateLimit, : 100 tweets were requested but the
     ## API can only return 2
 
-Now find the mean of counts Edge, and filter smallest than.
+Now find the mean of Edge occurrence, and filter smallest than 2*mean.
 ===========================================================
 
 ``` r
@@ -311,7 +316,7 @@ b
     ##     $TRX    $USDT     $VIB     $ZEC     $XVG     $XRP 
     ##   0.0000   0.0000   0.0000   0.0000  55.0000   0.0000
 
-find the Actor with max betweeness
+find the coin with max betweeness
 ==================================
 
 ``` r
@@ -337,7 +342,7 @@ c
     ##        $TRX       $USDT        $VIB        $ZEC        $XVG        $XRP 
     ## 0.007462687 0.011627907 0.007462687 0.013888889 0.009433962 0.010204082
 
-find the Actor with max closeness
+find the coin with max closeness
 =================================
 
 ``` r
@@ -365,7 +370,7 @@ e$vector
     ##        $USDT         $VIB         $ZEC         $XVG         $XRP 
     ## 0.1553432046 0.0009813853 0.3818523407 0.0062894402 0.0308197130
 
-find the Actor with max eigenvector
+find the coin with max eigenvector
 ===================================
 
 ``` r
